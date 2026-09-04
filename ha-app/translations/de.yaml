@@ -1,0 +1,17 @@
+configuration:
+  app_key:
+    name: RobotBona-App-Key
+    description: App-Key, den der Roboter beim Abruf seines lokalen Tokens verwendet.
+  device_id:
+    name: Geräte-ID des Roboters
+    description: RobotBona-Gerätekennung für die lokale Token-Antwort.
+  local_token:
+    name: Lokales Token
+    description: Generiertes lokales Token mit 32 Zeichen; auf der getesteten Firmware ist kein erfasstes Cloud-Token nötig.
+  persist_interval:
+    name: Speicherintervall
+    description: Sekunden zwischen dem Speichern von öffentlichem Status sowie Karten-/Trackdaten.
+network:
+  18080/tcp: HTTP-/Token-Dienst für den Roboter
+  20008/tcp: Persistente RobotBona-TCP-Verbindung für den Roboter
+  8090/tcp: Lokale JSON-API

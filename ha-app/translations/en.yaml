@@ -1,0 +1,17 @@
+configuration:
+  app_key:
+    name: RobotBona app key
+    description: App key used by this robot when requesting its local token.
+  device_id:
+    name: Robot device ID
+    description: RobotBona device identifier returned in the local token response.
+  local_token:
+    name: Local token
+    description: Generated 32-character local token; it does not need to be a captured cloud token on the tested firmware.
+  persist_interval:
+    name: Persistence interval
+    description: Seconds between writes of public state and map/track data.
+network:
+  18080/tcp: Robot-facing HTTP/token service
+  20008/tcp: Robot-facing persistent TCP service
+  8090/tcp: Local JSON API
