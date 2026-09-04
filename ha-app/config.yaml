@@ -1,0 +1,30 @@
+name: "Proscenic 790T Local"
+version: "0.1.0"
+slug: "proscenic_790t_local"
+description: "Fully local RobotBona replacement and API for the Proscenic 790T"
+url: "https://github.com/JakobFischer2574/proscenic-790t-local"
+arch:
+  - amd64
+startup: application
+boot: auto
+init: false
+stage: experimental
+image: "ghcr.io/jakobfischer2574/proscenic-790t-local"
+ports:
+  18080/tcp: 18080
+  20008/tcp: 20008
+  8090/tcp: 8090
+ports_description:
+  18080/tcp: "Robot-facing RobotBona HTTP/token service"
+  20008/tcp: "Robot-facing RobotBona persistent TCP service"
+  8090/tcp: "Local JSON API for Home Assistant and other clients"
+options:
+  app_key: ""
+  device_id: ""
+  local_token: "LOCAL790T00000000000000000000000"
+  persist_interval: 5
+schema:
+  app_key: str
+  device_id: str
+  local_token: str
+  persist_interval: int
