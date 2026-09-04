@@ -21,4 +21,5 @@ def test_response_uses_chunked_transfer_encoding_like_working_baseline():
     )
     assert b"Transfer-Encoding: chunked\r\n" in response
     assert b"Content-Type: application/json;charset=UTF-8\r\n" in response
-    assert response.endswith(b"d\r\n" + body + b"\r\n0\r\n\r\n")
+    chunk_prefix = f"{len(body):x}\r\n".encode("ascii")
+    assert response.endswith(chunk_prefix + body + b"\r\n0\r\n\r\n")
