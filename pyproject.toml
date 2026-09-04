@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "proscenic-790t-local"
+version = "0.1.0"
+description = "Fully local RobotBona-compatible server and API for the Proscenic 790T"
+requires-python = ">=3.11"
+license = {text = "License not yet selected for original project code"}
+authors = [{name = "Jakob Fischer"}]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-q"
