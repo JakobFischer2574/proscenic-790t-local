@@ -1,0 +1,12 @@
+{
+  "domain": "proscenic_790t_local",
+  "name": "Proscenic 790T",
+  "codeowners": ["@JakobFischer2574"],
+  "config_flow": true,
+  "documentation": "https://github.com/JakobFischer2574/proscenic-790t-local",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/JakobFischer2574/proscenic-790t-local/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

@@ -1,0 +1,46 @@
+{
+  "title": "Proscenic 790T",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to the local Proscenic 790T server",
+        "description": "Enter the host running proscenic-790t-local. Home Assistant only talks to the local API; the RobotBona protocol stays in the server.",
+        "data": {
+          "host": "Host or IP address",
+          "port": "API port"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect to the local Proscenic 790T API."
+    },
+    "abort": {
+      "already_configured": "This local API endpoint is already configured."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "battery": {"name": "Battery"},
+      "status": {"name": "Status"},
+      "work_state_raw": {"name": "Raw work state"},
+      "work_mode_raw": {"name": "Raw work mode"},
+      "error_raw": {"name": "Raw error"},
+      "fan_raw": {"name": "Raw fan value"},
+      "clear_area_raw": {"name": "Raw cleaning area"},
+      "clear_time_raw": {"name": "Raw cleaning time"}
+    },
+    "binary_sensor": {
+      "connected": {"name": "Connection"}
+    },
+    "select": {
+      "cleaning_mode": {"name": "Cleaning mode"},
+      "fan": {"name": "Fan"}
+    },
+    "switch": {
+      "voice": {"name": "Voice"}
+    },
+    "image": {
+      "map": {"name": "Map"}
+    }
+  }
+}
