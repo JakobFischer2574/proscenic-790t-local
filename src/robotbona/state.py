@@ -1,7 +1,8 @@
 """Robot session and state model.
 
-Raw RobotBona values are always retained. Friendly labels are conservative and
-must not erase uncertainty in proprietary state semantics.
+Raw RobotBona values are always retained internally. Friendly labels are
+conservative and must not erase uncertainty in proprietary state semantics.
+Client-facing snapshots redact credentials and large map/track blobs.
 """
 
 from __future__ import annotations
@@ -11,6 +12,7 @@ from typing import Any, Mapping
 
 STATUS_KEYS = ("workState", "workMode", "battery", "fan", "error", "direction", "brush")
 CLEANING_KEYS = ("clearArea", "clearTime", "clearSign", "clearModule")
+PUBLIC_RAW_EXCLUDE = frozenset({"token", "authCode", "deviceId", "appKey", "map", "track"})
 
 
 @dataclass(slots=True)
@@ -42,6 +44,7 @@ class RobotState:
         if not isinstance(value, Mapping):
             return
 
+        # Keep the complete value internally for diagnostics and future protocol work.
         self.raw_value.update(dict(value))
 
         if "token" in value:
@@ -73,13 +76,21 @@ class RobotState:
             "6": "docked_full_or_charging",
         }.get(raw, f"unknown_{raw}" if raw is not None else "unknown")
 
+    def public_raw(self) -> dict[str, Any]:
+        """Return diagnostics-safe raw values without credentials or map blobs."""
+        return {
+            key: value
+            for key, value in self.raw_value.items()
+            if key not in PUBLIC_RAW_EXCLUDE
+        }
+
     def public_snapshot(self) -> dict[str, Any]:
         return {
             "connected": self.connected,
             "robot": self.session.public_dict(),
             "state": dict(self.values),
             "friendly": {"work_state": self.work_state_label},
-            "raw": dict(self.raw_value),
+            "raw": self.public_raw(),
             "map_available": self.map_data is not None,
             "track_available": self.track_data is not None,
         }
