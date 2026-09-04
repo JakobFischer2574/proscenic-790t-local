@@ -18,6 +18,29 @@ def test_login_learns_internal_control_context_without_exposing_secrets():
     public = state.public_snapshot()
     assert "auth_code" not in public["robot"]
     assert "device_id" not in public["robot"]
+    assert "token" not in public["raw"]
+    assert "authCode" not in public["raw"]
+    assert "deviceId" not in public["raw"]
+
+
+def test_public_raw_redacts_map_blobs_but_internal_raw_keeps_them():
+    state = RobotState()
+    state.update_from_message(
+        {
+            "value": {
+                "noteCmd": "101",
+                "map": "SANITIZED_MAP",
+                "track": "SANITIZED_TRACK",
+                "clearArea": "12",
+            }
+        }
+    )
+    assert state.raw_value["map"] == "SANITIZED_MAP"
+    assert state.raw_value["track"] == "SANITIZED_TRACK"
+    public = state.public_snapshot()
+    assert "map" not in public["raw"]
+    assert "track" not in public["raw"]
+    assert public["raw"]["clearArea"] == "12"
 
 
 def test_status_preserves_raw_unknown_values():
@@ -36,6 +59,7 @@ def test_status_preserves_raw_unknown_values():
     assert state.values["workState"] == "7"
     assert state.work_state_label == "unknown_7"
     assert state.raw_value["mysteryField"] == "kept"
+    assert state.public_snapshot()["raw"]["mysteryField"] == "kept"
 
 
 def test_empirically_supported_work_state_labels_are_conservative():
