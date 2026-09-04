@@ -1,0 +1,46 @@
+{
+  "title": "Proscenic 790T",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Mit dem lokalen Proscenic-790T-Server verbinden",
+        "description": "Gib den Host an, auf dem proscenic-790t-local läuft. Home Assistant spricht nur mit der lokalen API; das RobotBona-Protokoll bleibt im Server.",
+        "data": {
+          "host": "Host oder IP-Adresse",
+          "port": "API-Port"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbindung zur lokalen Proscenic-790T-API nicht möglich."
+    },
+    "abort": {
+      "already_configured": "Dieser lokale API-Endpunkt ist bereits eingerichtet."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "battery": {"name": "Akku"},
+      "status": {"name": "Status"},
+      "work_state_raw": {"name": "Rohwert Arbeitsstatus"},
+      "work_mode_raw": {"name": "Rohwert Reinigungsmodus"},
+      "error_raw": {"name": "Rohwert Fehler"},
+      "fan_raw": {"name": "Rohwert Lüfter"},
+      "clear_area_raw": {"name": "Rohwert Reinigungsfläche"},
+      "clear_time_raw": {"name": "Rohwert Reinigungszeit"}
+    },
+    "binary_sensor": {
+      "connected": {"name": "Verbindung"}
+    },
+    "select": {
+      "cleaning_mode": {"name": "Reinigungsmodus"},
+      "fan": {"name": "Lüfter"}
+    },
+    "switch": {
+      "voice": {"name": "Sprachausgabe"}
+    },
+    "image": {
+      "map": {"name": "Karte"}
+    }
+  }
+}
