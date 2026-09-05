@@ -13,8 +13,6 @@ This repository contains **two separate components**, and a normal Home Assistan
 1. **Proscenic 790T Local App** — the local RobotBona replacement. This is the server the robot talks to.
 2. **Proscenic 790T custom integration** — the Home Assistant UI/device layer. It talks only to the App's local API.
 
-The architecture is intentionally split:
-
 ```text
 Proscenic 790T
     |
@@ -39,7 +37,7 @@ Home Assistant custom integration
 
 The Home Assistant integration deliberately contains **no proprietary RobotBona packet implementation**. The core/server is authoritative and the integration is only a thin local API client.
 
-## The most important firmware quirk: robot HTTP must be reachable on host port 80
+## Important firmware quirk: robot HTTP must be reachable on host port 80
 
 On the tested firmware, provisioning with a different `jPort` could return success while the robot still failed to complete the subsequent local RobotBona login.
 
@@ -51,7 +49,7 @@ robot TCP      HOME_ASSISTANT_IP:20008 -> App/container :20008
 local API      HOME_ASSISTANT_IP:8090  -> App/container :8090
 ```
 
-So the App listens internally on `18080`, but Home Assistant must publish that service to the robot as **host port 80** on the tested firmware.
+The App listens internally on `18080`, but Home Assistant must publish that service to the robot as **host port 80** on the tested firmware.
 
 If port 80 is already occupied, do not assume another `jPort` will work. A safer topology is to run the server on another LAN IP, for example a small Proxmox/LXC/Docker host, or use a dedicated LAN proxy/NAT rule that presents port 80 to the robot and forwards it to the RobotBona HTTP service.
 
@@ -106,6 +104,8 @@ You need:
 - host ports `80`, `20008`, and `8090` reachable on the Home Assistant host;
 - a computer or phone that can temporarily join the robot's setup Wi-Fi.
 
+**Strongly recommended:** give the Home Assistant host a stable LAN IP, for example with a DHCP reservation. The robot is provisioned with that IP and will stop reaching the local server if the address later changes.
+
 Do **not** expose ports `80`, `20008`, or `8090` to the public internet. The local API is designed for a trusted LAN and currently has no authentication layer.
 
 ## Step 1 — Add this repository to the Home Assistant App store
@@ -134,7 +134,7 @@ container 8090/tcp  -> host 8090
 
 The `18080 -> 80` mapping is intentional.
 
-Before provisioning the robot, you can verify the ports from another LAN machine:
+After the App is running, you can verify the ports from another LAN machine:
 
 ```powershell
 Test-NetConnection YOUR_HOME_ASSISTANT_LAN_IP -Port 80
@@ -142,7 +142,7 @@ Test-NetConnection YOUR_HOME_ASSISTANT_LAN_IP -Port 20008
 Test-NetConnection YOUR_HOME_ASSISTANT_LAN_IP -Port 8090
 ```
 
-All three should eventually report:
+All three should report:
 
 ```text
 TcpTestSucceeded : True
@@ -454,181 +454,10 @@ The API intentionally redacts RobotBona auth codes, device IDs and tokens from p
 
 ---
 
-# How this evolved from `robotbona_local_service_v4.py`
-
-The original `robotbona_local_service_v4.py` was the first real proof-of-concept. It already proved the crucial hardware fact: a 790T could be redirected away from the live RobotBona/Proscenic infrastructure, log in to a local replacement, send state/map traffic, and accept local control commands.
-
-But v4 was a **monolithic experimental script**. The repository turns that proof-of-concept into a reusable and testable system.
-
-## 1. Freeze the proven wire behaviour
-
-The first priority was not to "improve" the protocol by guessing. The known-good v4 behaviour was preserved as the baseline, then extracted into explicit packet-building/parsing code.
-
-This includes:
-
-- the 20-byte RobotBona header;
-- login ACKs;
-- normal ACKs;
-- keepalive ACKs;
-- control packet framing;
-- command sequencing;
-- the exact JSON serialization behaviour required by the tested firmware.
-
-For commands with extra parameters, field order matters. The extra parameter must appear **before** `transitCmd`, for example:
-
-```json
-{"mode":"4","transitCmd":"106"}
-```
-
-not:
-
-```json
-{"transitCmd":"106","mode":"4"}
-```
-
-Byte-level regression tests now protect those details.
-
-## 2. Split the monolith into a reusable core
-
-The responsibilities that lived together in v4 were separated into modules under `src/robotbona/`:
-
-```text
-protocol.py       RobotBona packet framing and ACKs
-commands.py       control packet construction and sequencing
-capabilities.py   confirmed/observed protocol capability metadata
-state.py          robot/session state and conservative friendly labels
-http_server.py    robot-facing token HTTP service
-tcp_server.py     persistent RobotBona TCP session
-service.py        high-level commands/state service
-api_server.py     stable local HTTP API
-map_decoder.py    map/track decoding and PNG rendering
-persistence.py    last-known public state/map persistence
-runtime.py        starts the complete service stack
-```
-
-The old v4 file is therefore no longer the production architecture; a sanitized baseline remains under `reference/` for regression/reference purposes.
-
-## 3. Separate raw protocol facts from interpretations
-
-The robot sends proprietary numeric states whose exact meaning is not always fully documented.
-
-Instead of inventing meanings, the new state model:
-
-- retains raw values;
-- exposes only conservative friendly labels where evidence exists;
-- keeps unknown values visible for diagnostics;
-- prevents session credentials from leaking through the public API.
-
-For example, tested `workState` values are mapped conservatively to labels such as `cleaning`, `returning_or_docking`, or `docked_full_or_charging` rather than pretending every proprietary state is fully understood.
-
-## 4. Turn the live robot connection into a shared service
-
-In v4, control logic was tied directly to the monolithic script.
-
-The refactor introduced a persistent `RobotConnection` shared by the high-level service. Start, stop, home, mode, fan, voice and map commands now all use the same authenticated live RobotBona session.
-
-This makes it possible for multiple front ends to use the robot without duplicating the wire protocol.
-
-## 5. Add a stable local API
-
-This was the key architectural step for Home Assistant.
-
-Instead of teaching Home Assistant about RobotBona packets, the server exposes simple local endpoints such as:
-
-```text
-POST /api/start
-POST /api/stop
-POST /api/home
-GET  /api/status
-GET  /api/map.png
-```
-
-That gives a clean boundary:
-
-```text
-proprietary RobotBona protocol
-          |
-          v
-      local core
-          |
-          v
-     stable JSON API
-          |
-          v
-    Home Assistant
-```
-
-## 6. Move map decoding into the server
-
-RobotBona map and track data use a proprietary encoded representation.
-
-The server now:
-
-1. receives `noteCmd 101` map/track payloads;
-2. stores the latest raw map/track state;
-3. decodes the RobotBona RLE-style map format;
-4. decodes the track coordinates;
-5. renders a PNG server-side;
-6. exposes it through `/api/map.png`.
-
-Home Assistant therefore does not need any RobotBona map knowledge.
-
-## 7. Add runtime configuration and safe persistence
-
-The v4 experiment could rely on local/private development values. A distributable project cannot.
-
-The new runtime therefore reads installation-specific values from environment variables or Home Assistant App options instead of hard-coding them.
-
-Only public last-known state and map/track data are persisted. Dynamic session credentials are not persisted and are relearned when the robot logs in again.
-
-## 8. Package exactly the same core for Docker and Home Assistant
-
-A root `Dockerfile` packages the same Python runtime used during standalone testing.
-
-That image is then reused by the Home Assistant App. There is no separate "Home Assistant RobotBona implementation" that could drift away from the standalone server.
-
-The App only supplies runtime configuration, persistence, network mappings and lifecycle management.
-
-## 9. Build a thin native Home Assistant integration
-
-The custom integration talks only to the local API.
-
-It provides native Home Assistant entities without containing:
-
-- RobotBona packet magic values;
-- command IDs;
-- TCP session code;
-- token/login logic;
-- map decoding.
-
-A boundary test explicitly guards this separation.
-
-## 10. Validate the refactor against the real robot
-
-The modular implementation was then tested against the same physical 790T rather than trusting unit tests alone.
-
-The migration test sequence confirmed:
-
-```text
-robot login/state       OK
-start                   OK
-stop                    OK
-return to dock          OK
-map + track reception   OK
-PNG rendering           OK
-local API               OK
-Home Assistant client   OK
-Home Assistant App      OK
-```
-
-During that real migration, one important new fact was discovered: the Home Assistant App was initially reachable on `18080`, and provisioning with `jPort=18080` returned success, but the robot never completed login. Publishing the App's internal `18080` service as **host port 80** and reprovisioning with `jPort=80` immediately fixed the connection. That is why port 80 is now part of the documented tested setup.
-
----
-
 # Repository layout
 
 ```text
-reference/          sanitized monolithic proof-of-concept baseline
+reference/          sanitized reverse-engineering reference material
 src/robotbona/      reusable RobotBona core/server + local API
 custom_components/  Home Assistant custom integration
 ha-app/             Home Assistant App packaging
