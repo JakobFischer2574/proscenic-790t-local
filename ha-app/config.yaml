@@ -11,11 +11,11 @@ init: false
 stage: experimental
 image: "ghcr.io/jakobfischer2574/proscenic-790t-local"
 ports:
-  18080/tcp: 18080
+  18080/tcp: 80
   20008/tcp: 20008
   8090/tcp: 8090
 ports_description:
-  18080/tcp: "Robot-facing RobotBona HTTP/token service"
+  18080/tcp: "Robot-facing RobotBona HTTP/token service (tested firmware requires host port 80)"
   20008/tcp: "Robot-facing RobotBona persistent TCP service"
   8090/tcp: "Local JSON API for Home Assistant and other clients"
 options:
